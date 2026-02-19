@@ -658,6 +658,7 @@ static GgError unarchive_artifact(
         GG_LOGE("Failed to open unarchived artifact location.");
         return err;
     }
+    GG_CLEANUP(cleanup_close, output_dir_fd);
 
     // Unarchive the zip
     return ggl_zip_unarchive(component_store_fd, zip_file, output_dir_fd, mode);
@@ -2462,6 +2463,7 @@ static void handle_deployment(
         GG_LOGE("Failed to open artifact store");
         return;
     }
+    GG_CLEANUP(cleanup_close, artifact_store_fd);
 
     int artifact_archive_fd = -1;
     ret = gg_dir_openat(
@@ -2475,6 +2477,7 @@ static void handle_deployment(
         GG_LOGE("Failed to open archive store.");
         return;
     }
+    GG_CLEANUP(cleanup_close, artifact_archive_fd);
 
     GglDigest digest_context = ggl_new_digest(&ret);
     if (ret != GG_ERR_OK) {
@@ -2546,6 +2549,7 @@ static void handle_deployment(
             GG_LOGE("Failed to open artifact directory.");
             return;
         }
+        GG_CLEANUP(cleanup_close, component_artifacts_fd);
         int component_archive_dir_fd = -1;
         ret = open_component_artifacts_dir(
             artifact_archive_fd,
@@ -2557,6 +2561,7 @@ static void handle_deployment(
             GG_LOGE("Failed to open unarchived artifacts directory.");
             return;
         }
+        GG_CLEANUP(cleanup_close, component_archive_dir_fd);
         GgObject recipe_obj;
         static uint8_t recipe_mem[GGL_COMPONENT_RECIPE_MAX_LEN] = { 0 };
         GgArena alloc = gg_arena_init(GG_BUF(recipe_mem));
@@ -2998,6 +3003,7 @@ static void handle_deployment(
                         component_name.data
                     );
                 } else { // relevant install service file exists
+                    GG_CLEANUP(cleanup_close, fd);
                     (void) disable_and_unlink_service(&component_name, INSTALL);
                     // add relevant component name into the vector
                     ret = gg_buf_vec_push(
@@ -3163,6 +3169,7 @@ static void handle_deployment(
                         component_name.data
                     );
                 } else {
+                    GG_CLEANUP(cleanup_close, fd);
                     (void
                     ) disable_and_unlink_service(&component_name, RUN_STARTUP);
                     // run link command
